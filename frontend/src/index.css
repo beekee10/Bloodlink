@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-bloodred-50: #fef2f2;
+  --color-bloodred-100: #fee2e2;
+  --color-bloodred-200: #fecaca;
+  --color-bloodred-300: #fca5a5;
+  --color-bloodred-400: #f87171;
+  --color-bloodred-500: #d91a2a;
+  --color-bloodred-600: #b91c1c;
+  --color-bloodred-700: #991b1c;
+  --color-bloodred-800: #7f1d1d;
+  --color-bloodred-900: #4c0505;
+  
+  --color-slate-950: #070a13;
+  --color-slate-850: #101625;
+  
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --shadow-glow: 0 0 15px rgba(217, 26, 42, 0.4);
+}
+
+/* Custom base overrides */
+body {
+  background-color: #070a13;
+  color: #f1f5f9;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism card utility */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Subtle glow transitions */
+.glow-on-hover {
+  transition: all 0.3s ease;
+}
+.glow-on-hover:hover {
+  box-shadow: 0 0 20px rgba(217, 26, 42, 0.55);
+}
+
+/* Leaflet maps custom height and style */
+.leaflet-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f172a !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #070a13;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ef4444;
+}
+
+/* Pulse animation for alerts */
+@keyframes heart-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-pulse-heart {
+  animation: heart-pulse 2s infinite ease-in-out;
+}
