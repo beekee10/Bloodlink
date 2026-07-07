@@ -15,6 +15,6 @@ router.get('/dashboard', authenticateToken, checkRole(['HOSPITAL']), getDashboar
 
 // Razorpay Subscriptions Payment System
 router.post('/payment-razorpay', authenticateToken, checkRole(['HOSPITAL']), paymentRazorpay);
-router.post('/verifyRazorpay', authenticateToken, checkRole(['HOSPITAL']), verifyRazorpay);
+router.post('/verify-razorpay', authenticateToken, checkRole(['HOSPITAL']), verifyRazorpay);
 
 export default router;

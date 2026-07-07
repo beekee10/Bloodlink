@@ -162,6 +162,52 @@ const HospitalDashboard = () => {
     }
   };
 
+  // Razorpay payment integration
+  const razorpayPayment = async(plan, billingCycle) => {
+    
+    try{
+      // create order
+      const res = await api.post('/hospitals/payment-razorpay', {plan,billingCycle});
+      const {order} = res.data;
+
+      if(order){
+        console.log(import.meta.env.VITE_RAZORPAY_KEY_ID);
+        console.log(order);
+      }
+      
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "BloodLink",
+        description: `${plan} Subscription`,
+        order_id: order.id,
+        handler: async function (response){
+          const verifyResponse = await api.post('/hospitals/verify-razorpay', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            plan,
+            billingCycle
+
+          });
+          
+          if (verifyResponse.data.success) {
+            alert("Subscription Activated!");
+            window.location.reload();
+          }
+        }
+      }
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
+    }catch{
+
+    }
+
+  }
+
   // Application Actions (Schedule / Confirm / Reject)
   const updateApplication = async (appId, status, extraBody = {}) => {
     setActionLoading(true);
@@ -725,7 +771,7 @@ const HospitalDashboard = () => {
                 </ul>
               </div>
               <button
-                onClick={() => handleRazorpayPayment('STARTER')}
+                onClick={() => razorpayPayment('STARTER',billingCycle)}
                 disabled={actionLoading}
                 className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold rounded-xl text-xs transition-colors"
               >
@@ -755,7 +801,7 @@ const HospitalDashboard = () => {
                 </ul>
               </div>
               <button
-                onClick={() => handleRazorpayPayment('PROFESSIONAL')}
+                onClick={() => razorpayPayment('PROFESSIONAL',billingCycle)}
                 disabled={actionLoading}
                 className="w-full py-2 bg-bloodred-500 hover:bg-bloodred-600 text-white font-bold rounded-xl text-xs shadow-md shadow-bloodred-500/10 transition-colors"
               >
@@ -782,7 +828,7 @@ const HospitalDashboard = () => {
                 </ul>
               </div>
               <button
-                onClick={() => handleRazorpayPayment('ENTERPRISE')}
+                onClick={() => razorpayPayment('ENTERPRISE',billingCycle)}
                 disabled={actionLoading}
                 className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold rounded-xl text-xs transition-colors"
               >

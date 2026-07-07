@@ -84,16 +84,16 @@ async function paymentRazorpay(req, res) {
     // Price definitions (INR)
     const prices = {
         STARTER: {
-            MONTHLY: 4900,
-            YEARLY: 49900
+            monthly: 4900,
+            yearly: 39900
         },
         PROFESSIONAL: {
-            MONTHLY: 9900,
-            YEARLY: 99900
+            monthly: 9900,
+            yearly: 79900
         },
         ENTERPRISE: {
-            MONTHLY: 19900,
-            YEARLY: 129900
+            monthly: 24900,
+            yearly: 199900
         }
       };
 
@@ -110,7 +110,7 @@ async function paymentRazorpay(req, res) {
     const options = {
       amount,
       currency: 'INR',
-      reciept: `${Date.now()}`
+      receipt: `receipt_${Date.now()}`
     };
 
     // Create the order on Razorpay
@@ -128,11 +128,7 @@ async function paymentRazorpay(req, res) {
  */
 async function verifyRazorpay(req, res) {
   try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    } = req.body;
+    const {razorpay_order_id,razorpay_payment_id,razorpay_signature} = req.body;
 
     // Fetch order information directly from Razorpay
     const body =razorpay_order_id + "|" + razorpay_payment_id;
@@ -146,6 +142,34 @@ async function verifyRazorpay(req, res) {
         return res.status(400).json({ success: false, message: 'Invalid signature' });
       }
       // Update hospital subscription here
+      const { plan, billingCycle } = req.body;
+
+      // Calculate subscription dates
+      const subscriptionStartedAt = new Date();
+
+      const subscriptionEndsAt = new Date(subscriptionStartedAt);
+
+      if (billingCycle && billingCycle.toUpperCase() === "MONTHLY") {
+        subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+      } else {
+        subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
+      }
+
+      console.log("Logged in User ID:", req.user.id);
+
+const updatedHospital = await HospitalProfile.findOneAndUpdate(
+  { userId: req.user.id },
+  {
+    subscriptionStatus: "ACTIVE",
+    subscriptionPlan: plan,
+    billingCycle: billingCycle.toUpperCase(),
+    subscriptionStartedAt,
+    subscriptionEndsAt
+  },
+  { new: true }
+);
+
+console.log("Updated Hospital:", updatedHospital);
       
       return res.status(200).json({
             success: true,
