@@ -140,11 +140,11 @@ const Login = () => {
             </Link>
           </p>
 
-          <div className="mt-8 p-3 rounded-xl bg-slate-900/60 border border-slate-800/40 text-[10px] text-slate-400 leading-normal text-left">
-            💡 <b>Demo Tip:</b> You can use our seeded accounts directly: <br />
-            • <b>Admin:</b> <i>admin@bloodlink.com</i> / <i>admin123</i> <br />
-            • <b>Hospital:</b> <i>cityhospital@bloodlink.com</i> / <i>hospital123</i> <br />
-            • <b>Donor:</b> <i>johndoe@bloodlink.com</i> / <i>donor123</i>
+          <div className="mt-8 p-3 rounded-xl bg-slate-900/60 border border-slate-800/40 text-[12px] text-slate-400 leading-normal text-left">
+            💡 <b>Demo Tip:</b> Use the demo accounts below to sign in instantly. <br /> <br />
+            • <b>Donor:  </b> <i> johndoe@bloodlink.com</i> / <i>donor123</i> <br />
+            • <b>Hospital:  </b> <i> cityhospital@bloodlink.com</i> / <i>hospital123</i> 
+            
           </div>
         </div>
       </div>
