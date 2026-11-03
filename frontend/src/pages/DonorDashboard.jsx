@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { Heart, MapPin, CheckCircle, Clock, ToggleLeft, ToggleRight, Award, Eye, Download, Info } from 'lucide-react';
+import { Heart, MapPin, CheckCircle, Clock, ToggleLeft, ToggleRight, Award, Eye, Download, Info, Map, Layers, ChevronDown, ChevronUp, Navigation } from 'lucide-react';
 import MapView from '../components/MapView';
 import api from '../services/api';
 
@@ -11,6 +11,8 @@ const DonorDashboard = () => {
   
   // Tab control
   const [activeTab, setActiveTab] = useState('feed');
+  const [showMap, setShowMap] = useState(true);
+  const [viewLayout, setViewLayout] = useState('split'); // 'radar' (top radar view) | 'split' (side-by-side with map on left)
 
   // States
   const [profile, setProfile] = useState(null);
@@ -121,7 +123,7 @@ const DonorDashboard = () => {
   const pendingApplicationsCount = history.filter(h => h.status === 'APPLIED' || h.status === 'SCHEDULED').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 bg-slate-950 text-left font-sans relative min-h-[85vh]">
+    <div className="max-w-7xl mx-auto px-6 pt-8 pb-28 bg-slate-950 text-left font-sans relative min-h-[85vh]">
       {/* Background radial effects */}
       <div className="absolute top-0 right-10 h-[300px] w-[300px] rounded-full bg-bloodred-900/10 blur-[120px] pointer-events-none"></div>
 
@@ -177,133 +179,76 @@ const DonorDashboard = () => {
       )}
 
       {/* Tabs Selector Navigation */}
-      <div className="flex border-b border-slate-800 mb-8 space-x-8">
-        <button
-          onClick={() => {
-            setActiveTab('feed');
-            window.location.hash = '';
-          }}
-          className={`pb-3 text-sm font-bold transition-all relative ${
-            activeTab === 'feed' ? 'text-bloodred-500 font-extrabold' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Active Emergency Feed
-          {activeTab === 'feed' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full"></span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('history');
-            window.location.hash = '#history';
-          }}
-          className={`pb-3 text-sm font-bold transition-all relative ${
-            activeTab === 'history' ? 'text-bloodred-500 font-extrabold' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          My Donations & Certificates
-          {activeTab === 'history' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full"></span>
-          )}
-        </button>
-      </div>
+      
 
       {/* Render Active View */}
       {activeTab === 'feed' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Active emergency list */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h3 className="text-base font-bold text-slate-200 flex items-center">
-                  <Heart className="h-5 w-5 text-bloodred-500 mr-2 animate-pulse-heart" /> Emergency Matching Requests
-                </h3>
-                <p className="text-[11px] text-slate-500">Real-time requests within your availability radius</p>
+        <div className="space-y-6">
+          {/* Radar & Map Header Controls */}
+          <div className="glass-panel p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="h-9 w-9 rounded-xl bg-bloodred-500/10 border border-bloodred-500/20 flex items-center justify-center text-bloodred-500">
+                <Navigation className="h-5 w-5 animate-pulse" />
               </div>
-              <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-850 text-[10px] font-bold text-slate-400">
-                {nearbyRequests.length} matching found
-              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                  Live Emergency Radar & Coverage
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  {nearbyRequests.length} matching hospital requests within {nearbyRequests[0]?.radius || 10} km
+                </p>
+              </div>
             </div>
 
-            {nearbyRequests.length === 0 ? (
-              <div className="glass-panel p-10 text-center rounded-2xl border border-slate-800">
-                <Info className="mx-auto h-8 w-8 text-slate-600 mb-2.5" />
-                <p className="text-xs font-bold text-slate-400">No active matching blood requests found nearby.</p>
-                <p className="text-[10px] text-slate-500 mt-1">Make sure you are within the radius and your blood group matches.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {nearbyRequests.map(req => {
-                  const hasApplied = history.some(item => item.requestId === req.id);
-                  return (
-                    <div
-                      key={req.id}
-                      className={`glass-panel p-5 rounded-2xl border border-slate-800 relative overflow-hidden transition-all duration-300 ${
-                        req.aiPriority === 'Critical' ? 'border-l-4 border-l-bloodred-500 shadow-bloodred-950/5' : ''
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-black text-slate-200">{req.hospitalName}</span>
-                            {req.aiPriority === 'Critical' && (
-                              <span className="px-1.5 py-0.5 rounded bg-bloodred-950 text-bloodred-400 border border-bloodred-900/30 text-[8px] font-bold tracking-wide flex items-center">
-                                <Info className="h-2 w-2 mr-0.5" /> CRITICAL NEED
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[9px] text-slate-500 flex items-center mt-0.5">
-                            <MapPin className="h-2.5 w-2.5 mr-0.5 text-slate-400" /> {req.hospitalAddress} ({req.distance} km away)
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[10px] font-black text-bloodred-400 block">{req.unitsRequired} Units Required</span>
-                          <span className="text-[9px] text-slate-500">Group {req.bloodGroup}</span>
-                        </div>
-                      </div>
+            {/* Layout & Visibility Toggle Buttons */}
+            <div className="flex items-center space-x-2">
+              {showMap && (
+                <div className="hidden sm:flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewLayout('radar')}
+                    className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1.5 ${
+                      viewLayout === 'radar'
+                        ? 'bg-bloodred-500 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Layers className="h-3 w-3" /> Top Radar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewLayout('split')}
+                    className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1.5 ${
+                      viewLayout === 'split'
+                        ? 'bg-bloodred-500 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Map className="h-3 w-3" /> Split View
+                  </button>
+                </div>
+              )}
 
-                      <p className="text-xs text-slate-350 bg-slate-950/40 p-3 rounded-xl leading-relaxed mb-3 border border-slate-900/60">
-                        {req.description}
-                      </p>
-
-                      {req.aiReason && (
-                        <p className="text-[10px] text-amber-400 bg-amber-950/10 border border-amber-900/20 p-2.5 rounded-xl leading-relaxed mb-4">
-                          <b>AI Assessment:</b> {req.aiReason}
-                        </p>
-                      )}
-
-                      <div className="flex justify-between items-center pt-3 border-t border-slate-900">
-                        <span className="text-[10px] text-slate-500">Required before: {new Date(req.requiredBefore).toLocaleDateString()}</span>
-                        
-                        {hasApplied ? (
-                          <button
-                            disabled
-                            className="px-4 py-1.5 rounded-xl bg-slate-900 text-slate-500 font-bold text-[10px] border border-slate-850 transition-colors cursor-not-allowed"
-                          >
-                            Applied
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleApply(req.id)}
-                            disabled={actionLoading || (profile.lastDonationDate && (new Date().getTime() - new Date(profile.lastDonationDate).getTime() < 90 * 24 * 60 * 60 * 1000))}
-                            className="px-4 py-1.5 rounded-xl bg-bloodred-500 hover:bg-bloodred-600 text-white font-bold text-[10px] shadow-md shadow-bloodred-500/10 transition-colors disabled:opacity-50"
-                          >
-                            Apply to Donate
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => setShowMap(prev => !prev)}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <Map className="h-3.5 w-3.5 text-bloodred-400" />
+                <span>{showMap ? 'Hide Map' : 'Show Map'}</span>
+                {showMap ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
 
-          {/* Map display */}
-          <div className="lg:col-span-1 space-y-4">
-            <h4 className="text-xs font-bold text-slate-350 tracking-wider uppercase">Nearby Map Coverage</h4>
-            {profile && (
-              <div className="rounded-2xl overflow-hidden border border-slate-850">
+          {/* Map Section (When in Radar Mode) */}
+          {showMap && viewLayout === 'radar' && profile && (
+            <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+              <div className="rounded-xl overflow-hidden border border-slate-800">
                 <MapView
                   latitude={profile.latitude}
                   longitude={profile.longitude}
@@ -312,19 +257,227 @@ const DonorDashboard = () => {
                   centerLabel="Your Location"
                 />
               </div>
-            )}
-            <div className="glass-panel p-4 rounded-xl border border-slate-850 text-xs space-y-2">
-              <h5 className="font-bold text-slate-200">Matching Legend</h5>
-              <div className="flex items-center space-x-2 text-[10px] text-slate-455">
-                <span className="h-2 w-2 rounded-full bg-bloodred-500 inline-block"></span>
-                <span>Active Blood Requests in your radius</span>
-              </div>
-              <div className="flex items-center space-x-2 text-[10px] text-slate-455">
-                <span className="h-2 w-2 rounded-full bg-blue-500 inline-block"></span>
-                <span>Your exact registered GPS coordinate</span>
+
+              {/* Integrated Horizontal Legend Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 px-2 pt-1 text-xs">
+                <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400">
+                  <span className="flex items-center space-x-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-bloodred-500 inline-block shadow-sm shadow-bloodred-500/50"></span>
+                    <span className="text-slate-300">Active Hospital Requests</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block shadow-sm shadow-blue-500/50"></span>
+                    <span className="text-slate-300">Your Registered GPS Pin</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full border border-bloodred-400/80 bg-bloodred-500/10 inline-block"></span>
+                    <span className="text-slate-300">Coverage Radius ({nearbyRequests[0]?.radius || 10} km)</span>
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500">Live geo-spatial tracking</span>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Requests Content Section */}
+          {viewLayout === 'split' && showMap && profile ? (
+            /* Split View: Map on Left (col-5), Requests on Right (col-7) - ZERO overlap with bottom-right chatbot */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-20">
+                <div className="rounded-2xl overflow-hidden border border-slate-800">
+                  <MapView
+                    latitude={profile.latitude}
+                    longitude={profile.longitude}
+                    markers={mapMarkers}
+                    radius={nearbyRequests[0]?.radius || 10}
+                    centerLabel="Your Location"
+                  />
+                </div>
+                <div className="glass-panel p-3.5 rounded-xl border border-slate-850 text-xs space-y-2">
+                  <h5 className="font-bold text-slate-200 text-[11px]">Map Legend</h5>
+                  <div className="flex items-center space-x-2 text-[10px] text-slate-400">
+                    <span className="h-2 w-2 rounded-full bg-bloodred-500 inline-block"></span>
+                    <span>Hospital Blood Needs</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-[10px] text-slate-400">
+                    <span className="h-2 w-2 rounded-full bg-blue-500 inline-block"></span>
+                    <span>Your GPS Coordinate</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-200 flex items-center">
+                    <Heart className="h-5 w-5 text-bloodred-500 mr-2 animate-pulse-heart" /> Emergency Matching Requests
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-850 text-[10px] font-bold text-slate-400">
+                    {nearbyRequests.length} matching found
+                  </span>
+                </div>
+
+                {nearbyRequests.length === 0 ? (
+                  <div className="glass-panel p-10 text-center rounded-2xl border border-slate-800">
+                    <Info className="mx-auto h-8 w-8 text-slate-600 mb-2.5" />
+                    <p className="text-xs font-bold text-slate-400">No active matching blood requests found nearby.</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Make sure you are within the radius and your blood group matches.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {nearbyRequests.map(req => {
+                      const hasApplied = history.some(item => item.requestId === req.id);
+                      return (
+                        <div
+                          key={req.id}
+                          className={`glass-panel p-5 rounded-2xl border border-slate-800 relative overflow-hidden transition-all duration-300 hover:border-slate-700 ${
+                            req.aiPriority === 'Critical' ? 'border-l-4 border-l-bloodred-500 shadow-bloodred-950/5' : ''
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-black text-slate-200">{req.hospitalName}</span>
+                                {req.aiPriority === 'Critical' && (
+                                  <span className="px-1.5 py-0.5 rounded bg-bloodred-950 text-bloodred-400 border border-bloodred-900/30 text-[8px] font-bold tracking-wide flex items-center">
+                                    <Info className="h-2 w-2 mr-0.5" /> CRITICAL NEED
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[9px] text-slate-500 flex items-center mt-0.5">
+                                <MapPin className="h-2.5 w-2.5 mr-0.5 text-slate-400" /> {req.hospitalAddress} ({req.distance} km away)
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-black text-bloodred-400 block">{req.unitsRequired} Units Required</span>
+                              <span className="text-[9px] text-slate-500">Group {req.bloodGroup}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-slate-350 bg-slate-950/40 p-3 rounded-xl leading-relaxed mb-3 border border-slate-900/60">
+                            {req.description}
+                          </p>
+
+                          {req.aiReason && (
+                            <p className="text-[10px] text-amber-400 bg-amber-950/10 border border-amber-900/20 p-2.5 rounded-xl leading-relaxed mb-4">
+                              <b>AI Assessment:</b> {req.aiReason}
+                            </p>
+                          )}
+
+                          <div className="flex justify-between items-center pt-3 border-t border-slate-900">
+                            <span className="text-[10px] text-slate-500">Required before: {new Date(req.requiredBefore).toLocaleDateString()}</span>
+                            
+                            {hasApplied ? (
+                              <button
+                                disabled
+                                className="px-4 py-1.5 rounded-xl bg-slate-900 text-slate-500 font-bold text-[10px] border border-slate-850 transition-colors cursor-not-allowed"
+                              >
+                                Applied
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleApply(req.id)}
+                                disabled={actionLoading || (profile.lastDonationDate && (new Date().getTime() - new Date(profile.lastDonationDate).getTime() < 90 * 24 * 60 * 60 * 1000))}
+                                className="px-4 py-1.5 rounded-xl bg-bloodred-500 hover:bg-bloodred-600 text-white font-bold text-[10px] shadow-md shadow-bloodred-500/10 transition-colors disabled:opacity-50"
+                              >
+                                Apply to Donate
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Radar / Full Grid View: Cards rendered in responsive 2-column grid */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-200 flex items-center">
+                  <Heart className="h-5 w-5 text-bloodred-500 mr-2 animate-pulse-heart" /> Emergency Matching Requests
+                </h3>
+                <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-850 text-[10px] font-bold text-slate-400">
+                  {nearbyRequests.length} matching found
+                </span>
+              </div>
+
+              {nearbyRequests.length === 0 ? (
+                <div className="glass-panel p-10 text-center rounded-2xl border border-slate-800">
+                  <Info className="mx-auto h-8 w-8 text-slate-600 mb-2.5" />
+                  <p className="text-xs font-bold text-slate-400">No active matching blood requests found nearby.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Make sure you are within the radius and your blood group matches.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {nearbyRequests.map(req => {
+                    const hasApplied = history.some(item => item.requestId === req.id);
+                    return (
+                      <div
+                        key={req.id}
+                        className={`glass-panel p-5 rounded-2xl border border-slate-800 relative overflow-hidden transition-all duration-300 hover:border-slate-700 flex flex-col justify-between ${
+                          req.aiPriority === 'Critical' ? 'border-l-4 border-l-bloodred-500 shadow-bloodred-950/5' : ''
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-black text-slate-200">{req.hospitalName}</span>
+                                {req.aiPriority === 'Critical' && (
+                                  <span className="px-1.5 py-0.5 rounded bg-bloodred-950 text-bloodred-400 border border-bloodred-900/30 text-[8px] font-bold tracking-wide flex items-center">
+                                    <Info className="h-2 w-2 mr-0.5" /> CRITICAL NEED
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[9px] text-slate-500 flex items-center mt-0.5">
+                                <MapPin className="h-2.5 w-2.5 mr-0.5 text-slate-400" /> {req.hospitalAddress} ({req.distance} km away)
+                              </span>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] font-black text-bloodred-400 block">{req.unitsRequired} Units</span>
+                              <span className="text-[9px] text-slate-500 font-bold">Group {req.bloodGroup}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-slate-350 bg-slate-950/40 p-3 rounded-xl leading-relaxed mb-3 border border-slate-900/60">
+                            {req.description}
+                          </p>
+
+                          {req.aiReason && (
+                            <p className="text-[10px] text-amber-400 bg-amber-950/10 border border-amber-900/20 p-2.5 rounded-xl leading-relaxed mb-4">
+                              <b>AI Assessment:</b> {req.aiReason}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-900 mt-2">
+                          <span className="text-[10px] text-slate-500">Needed by: {new Date(req.requiredBefore).toLocaleDateString()}</span>
+                          
+                          {hasApplied ? (
+                            <button
+                              disabled
+                              className="px-4 py-1.5 rounded-xl bg-slate-900 text-slate-500 font-bold text-[10px] border border-slate-850 transition-colors cursor-not-allowed"
+                            >
+                              Applied
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleApply(req.id)}
+                              disabled={actionLoading || (profile.lastDonationDate && (new Date().getTime() - new Date(profile.lastDonationDate).getTime() < 90 * 24 * 60 * 60 * 1000))}
+                              className="px-4 py-1.5 rounded-xl bg-bloodred-500 hover:bg-bloodred-600 text-white font-bold text-[10px] shadow-md shadow-bloodred-500/10 transition-colors disabled:opacity-50"
+                            >
+                              Apply to Donate
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         /* History View Tab */

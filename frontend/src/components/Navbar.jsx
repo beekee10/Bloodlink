@@ -2,12 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Bell, LogOut, Heart, ShieldAlert, Award, FileSpreadsheet, Activity, CreditCard } from 'lucide-react';
 import api from '../services/api';
-import {Link} from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
   const [notifications, setNotifications] = useState([]);
   const [showNotif, setShowNotif] = useState(false);
+
+  // Sync hash state with location or hashchange events
+  useEffect(() => {
+    setCurrentHash(location.hash);
+  }, [location.hash]);
+
+  useEffect(() => {
+    const onHashChange = () => setCurrentHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const isLinkActive = (path, hash = '') => {
+    if (location.pathname !== path) return false;
+    if (!hash) {
+      return !currentHash || currentHash === '#' || currentHash === '#feed' || currentHash === '#overview';
+    }
+    return currentHash === hash;
+  };
+
+  const NavLinkItem = ({ to, path, hash = '', icon: Icon, label }) => {
+    const active = isLinkActive(path, hash);
+    return (
+      <Link
+        to={to}
+        className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-200 flex items-center space-x-2 text-xs sm:text-sm font-semibold ${
+          active
+            ? 'text-bloodred-400 bg-bloodred-500/10 border border-bloodred-500/30 shadow-sm shadow-bloodred-500/20'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+        }`}
+      >
+        <Icon className={`h-4 w-4 transition-colors ${active ? 'text-bloodred-500' : 'text-slate-400'}`} />
+        <span>{label}</span>
+        {active && (
+          <span className="absolute -bottom-1 left-3 right-3 h-0.5 bg-bloodred-500 rounded-full shadow-glow"></span>
+        )}
+      </Link>
+    );
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -54,22 +95,22 @@ const Navbar = () => {
 
       {/* Center Nav Link Indicators */}
       {user && (
-        <div className="hidden md:flex items-center space-x-6 text-sm text-slate-300">
+        <div className="hidden md:flex items-center space-x-2 text-sm">
           {user.role === 'DONOR' && (
             <>
-              <Link to="/donor" className="hover:text-bloodred-500 transition-colors flex items-center space-x-1.5"><Activity className="h-4 w-4" /> <span>Donor Feed</span></Link>
-              <Link to="/donor#history" className="hover:text-bloodred-500 transition-colors flex items-center space-x-1.5"><Award className="h-4 w-4" /> <span>Donations</span></Link>
+              <NavLinkItem to="/donor" path="/donor" hash="" icon={Activity} label="Donor Feed" />
+              <NavLinkItem to="/donor#history" path="/donor" hash="#history" icon={Award} label="Donations" />
             </>
           )}
           {user.role === 'HOSPITAL' && (
             <>
-              <Link to="/hospital" className="hover:text-bloodred-500 transition-colors flex items-center space-x-1.5"><Activity className="h-4 w-4" /> <span>Hospital Dashboard</span></Link>
-              <Link to="/hospital#requests" className="hover:text-bloodred-500 transition-colors flex items-center space-x-1.5"><FileSpreadsheet className="h-4 w-4" /> <span>Manage Requests</span></Link>
-              <Link to="/hospital#subscription" className="hover:text-bloodred-500 transition-colors flex items-center space-x-1.5"><CreditCard className="h-4 w-4" /> <span>Subscription Plan</span></Link>
+              <NavLinkItem to="/hospital" path="/hospital" hash="" icon={Activity} label="Hospital Dashboard" />
+              <NavLinkItem to="/hospital#requests" path="/hospital" hash="#requests" icon={FileSpreadsheet} label="Manage Requests" />
+              <NavLinkItem to="/hospital#subscription" path="/hospital" hash="#subscription" icon={CreditCard} label="Subscription Plan" />
             </>
           )}
           {user.role === 'ADMIN' && (
-            <span className="text-amber-500 font-bold flex items-center space-x-1.5"><ShieldAlert className="h-4 w-4" /> <span>ADMIN PANEL</span></span>
+            <NavLinkItem to="/admin" path="/admin" hash="" icon={ShieldAlert} label="Admin Panel" />
           )}
         </div>
       )}

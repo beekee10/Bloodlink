@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { PlusCircle, Heart, Users, FileSpreadsheet, Calendar, Sparkles, Navigation, CheckCircle, ShieldAlert, Award, Clock, ArrowRight, Info, CreditCard } from 'lucide-react';
+import { PlusCircle, Heart, Users, FileSpreadsheet, Calendar, Sparkles, Navigation, CheckCircle, ShieldAlert, Award, Clock, ArrowRight, Info, CreditCard, Building2, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 
 const HospitalDashboard = () => {
@@ -112,7 +112,22 @@ const HospitalDashboard = () => {
         emergencyLevel,
         details: aiContext
       });
-      setDescription(res.data.suggestion);
+
+      if (res.data.suggestion) {
+        setDescription(res.data.suggestion);
+      }
+
+      // Automatically sync the form inputs with whatever blood group & units were specified or detected
+      if (res.data.bloodGroup) {
+        setBloodGroup(res.data.bloodGroup);
+      }
+      if (res.data.unitsRequired) {
+        setUnitsRequired(res.data.unitsRequired);
+      }
+      if (res.data.emergencyLevel) {
+        setEmergencyLevel(res.data.emergencyLevel);
+      }
+
       setAiContext('');
     } catch (err) {
       console.error(err);
@@ -244,109 +259,184 @@ const HospitalDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 bg-slate-950 text-left font-sans relative min-h-[85vh]">
-      <div className="absolute top-0 left-10 h-[300px] w-[300px] rounded-full bg-bloodred-900/10 blur-[120px] pointer-events-none"></div>
+    <div className="max-w-7xl mx-auto px-6 pt-8 pb-28 bg-slate-950 text-left font-sans relative min-h-[85vh]">
+      <div className="absolute top-0 left-10 h-[350px] w-[350px] rounded-full bg-bloodred-900/10 blur-[130px] pointer-events-none"></div>
+
+      {/* Hospital Identity Header Card */}
+      {profile && (
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 relative overflow-hidden mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+          <div className="flex items-center space-x-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-bloodred-500/20 to-blue-500/20 text-bloodred-400 border border-bloodred-500/30 flex items-center justify-center font-black text-2xl shadow-inner shrink-0">
+              <Building2 className="h-8 w-8 text-bloodred-500" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-xl font-extrabold text-white tracking-tight leading-tight">{profile.name}</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border flex items-center gap-1.5 ${
+                  profile.isVerified
+                    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40'
+                    : 'bg-amber-950/60 text-amber-400 border-amber-800/40'
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${profile.isVerified ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                  {profile.isVerified ? 'Verified Facility' : 'Verification Pending'}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[9px] font-bold text-slate-400 uppercase">
+                  {profile.subscriptionStatus || 'TRIAL'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>License: <b className="font-mono text-slate-300">{profile.licenseNumber}</b></span>
+                {profile.address && (
+                  <>
+                    <span>•</span>
+                    <span className="text-slate-400">{profile.address}</span>
+                  </>
+                )}
+                {profile.phone && (
+                  <>
+                    <span>•</span>
+                    <span className="text-slate-400">Tel: {profile.phone}</span>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 shrink-0">
+            <button
+              onClick={loadDashboard}
+              disabled={actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center space-x-2 disabled:opacity-50"
+              title="Refresh Dashboard"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${actionLoading ? 'animate-spin text-bloodred-400' : 'text-slate-400'}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Account Verification Check banner */}
       {profile && !profile.isVerified && (
-        <div className="mb-6 p-4 rounded-2xl bg-amber-950/30 border border-amber-900/40 text-amber-300 text-xs flex items-center space-x-2.5">
-          <ShieldAlert className="h-5 w-5 shrink-0 animate-pulse text-amber-500" />
+        <div className="mb-6 p-4 rounded-2xl bg-amber-950/30 border border-amber-900/40 text-amber-300 text-xs flex items-center space-x-3 shadow-lg">
+          <ShieldAlert className="h-5 w-5 shrink-0 animate-pulse text-amber-400" />
           <div>
-            <h4 className="font-extrabold">Account Awaiting Verification</h4>
-            <p className="mt-0.5 text-slate-400">Our administrative team is validating your license (License: {profile.licenseNumber}). You cannot post active blood requests yet. Please use the seeded account for testing all features.</p>
+            <h4 className="font-extrabold text-amber-200">Account Awaiting Official Verification</h4>
+            <p className="mt-0.5 text-slate-400 leading-relaxed">Our administrative team is validating your medical license ({profile.licenseNumber}). You cannot publish public blood requests yet. Please use the seeded demo account for testing all features.</p>
           </div>
         </div>
       )}
 
       {/* Trial Expiry banner */}
       {profile && profile.subscriptionStatus === 'TRIAL' && (
-        <div className="mb-6 p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex justify-between items-center">
-          <span className="flex items-center"><Clock className="h-4 w-4 text-bloodred-400 mr-1.5 shrink-0" /> Free Trial Active: 14 days of access granted. Ends on {new Date(profile.trialEndsAt).toLocaleDateString()}.</span>
-          <span className="text-[10px] uppercase font-bold text-bloodred-500 tracking-wider bg-bloodred-950/20 px-2 py-0.5 border border-bloodred-900/30 rounded">Trial User</span>
+        <div className="mb-6 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 flex justify-between items-center shadow-md">
+          <span className="flex items-center"><Clock className="h-4 w-4 text-bloodred-400 mr-2 shrink-0" /> Free Trial Active: 14 days of full feature access. Ends on {new Date(profile.trialEndsAt).toLocaleDateString()}.</span>
+          <span className="text-[10px] uppercase font-bold text-bloodred-400 tracking-wider bg-bloodred-950/40 px-2.5 py-0.5 border border-bloodred-900/30 rounded-lg">Trial Tier</span>
         </div>
       )}
 
       {/* Active Membership banner */}
       {profile && profile.subscriptionStatus === 'ACTIVE' && (
-        <div className="mb-6 p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-900/30 text-xs text-emerald-300 flex justify-between items-center">
-          <span className="flex items-center"><CheckCircle className="h-4 w-4 text-emerald-450 mr-1.5 shrink-0" /> Your Premium Membership is active until {new Date(profile.subscriptionEndsAt).toLocaleDateString()}. Thank you for saving lives!</span>
-          <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider bg-emerald-950/40 px-2 py-0.5 border border-emerald-800/40 rounded">Active Pro</span>
+        <div className="mb-6 p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-900/30 text-xs text-emerald-300 flex justify-between items-center shadow-md">
+          <span className="flex items-center"><CheckCircle className="h-4 w-4 text-emerald-400 mr-2 shrink-0" /> Premium Pro Membership Active until {new Date(profile.subscriptionEndsAt).toLocaleDateString()}. Unlimited donor broadcasts enabled!</span>
+          <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider bg-emerald-950/40 px-2.5 py-0.5 border border-emerald-800/40 rounded-lg">Active Pro</span>
         </div>
       )}
 
-      {/* Stats Cards */}
+      {/* Enhanced KPI Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="glass-panel p-5 rounded-2xl border border-slate-850 flex items-center justify-between">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-all shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Active Blood Requests</span>
-            <h2 className="text-3xl font-extrabold text-white mt-1">{stats.activeRequestsCount}</h2>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Active Blood Broadcasts</span>
+            <div className="flex items-baseline space-x-2 mt-1">
+              <h2 className="text-3xl font-black text-white">{stats.activeRequestsCount}</h2>
+              <span className="text-[11px] font-bold text-bloodred-400">Open Needs</span>
+            </div>
           </div>
-          <div className="h-10 w-10 rounded-xl bg-bloodred-900/20 text-bloodred-500 flex items-center justify-center">
-            <Heart className="h-5 w-5 fill-current" />
+          <div className="h-12 w-12 rounded-2xl bg-bloodred-500/10 border border-bloodred-500/20 text-bloodred-500 flex items-center justify-center shadow-inner">
+            <Heart className="h-6 w-6 fill-current animate-pulse-heart" />
           </div>
         </div>
-        <div className="glass-panel p-5 rounded-2xl border border-slate-850 flex items-center justify-between">
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-all shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Applications Pending</span>
-            <h2 className="text-3xl font-extrabold text-white mt-1">{stats.pendingApplicationsCount}</h2>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Donor Applications</span>
+            <div className="flex items-baseline space-x-2 mt-1">
+              <h2 className="text-3xl font-black text-white">{stats.pendingApplicationsCount}</h2>
+              <span className="text-[11px] font-bold text-blue-400">Awaiting Action</span>
+            </div>
           </div>
-          <div className="h-10 w-10 rounded-xl bg-blue-900/20 text-blue-500 flex items-center justify-center">
-            <Users className="h-5 w-5" />
+          <div className="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shadow-inner">
+            <Users className="h-6 w-6" />
           </div>
         </div>
-        <div className="glass-panel p-5 rounded-2xl border border-slate-850 flex items-center justify-between">
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-all shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Completed Donations</span>
-            <h2 className="text-3xl font-extrabold text-white mt-1">{stats.completedDonationsCount}</h2>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Completed Transfusions</span>
+            <div className="flex items-baseline space-x-2 mt-1">
+              <h2 className="text-3xl font-black text-white">{stats.completedDonationsCount}</h2>
+              <span className="text-[11px] font-bold text-emerald-400">Recorded</span>
+            </div>
           </div>
-          <div className="h-10 w-10 rounded-xl bg-emerald-900/20 text-emerald-500 flex items-center justify-center">
-            <Award className="h-5 w-5" />
+          <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-inner">
+            <Award className="h-6 w-6" />
           </div>
         </div>
       </div>
 
-      {/* Tabs Selector Navigation */}
-      <div className="flex border-b border-slate-800 mb-8 space-x-8">
+      {/* In-Page Tabs Selector Navigation */}
+      <div className="flex border-b border-slate-800 mb-8 space-x-8 overflow-x-auto scrollbar-none">
         <button
           onClick={() => {
             setActiveTab('overview');
             window.location.hash = '';
           }}
-          className={`pb-3 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative flex items-center space-x-2 shrink-0 ${
             activeTab === 'overview' ? 'text-bloodred-500 font-extrabold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Create Request & Analytics
+          <PlusCircle className="h-4 w-4" />
+          <span>Publish Request & AI Appeal</span>
           {activeTab === 'overview' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full"></span>
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full shadow-glow"></span>
           )}
         </button>
+
         <button
           onClick={() => {
             setActiveTab('manage');
             window.location.hash = '#requests';
           }}
-          className={`pb-3 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative flex items-center space-x-2 shrink-0 ${
             activeTab === 'manage' ? 'text-bloodred-500 font-extrabold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Manage Outgoing Requests
+          <FileSpreadsheet className="h-4 w-4" />
+          <span>Outgoing Requests & Donor Matching</span>
+          {requests.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300">
+              {requests.length}
+            </span>
+          )}
           {activeTab === 'manage' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full"></span>
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full shadow-glow"></span>
           )}
         </button>
+
         <button
           onClick={() => {
             setActiveTab('subscription');
             window.location.hash = '#subscription';
           }}
-          className={`pb-3 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative flex items-center space-x-2 shrink-0 ${
             activeTab === 'subscription' ? 'text-bloodred-500 font-extrabold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Subscription Plan
+          <CreditCard className="h-4 w-4" />
+          <span>Membership & Plans</span>
           {activeTab === 'subscription' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full"></span>
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-bloodred-500 rounded-full shadow-glow"></span>
           )}
         </button>
       </div>
@@ -461,9 +551,10 @@ const HospitalDashboard = () => {
                 rows="3"
                 value={aiContext}
                 onChange={(e) => setAiContext(e.target.value)}
-                placeholder="Example: Road accident, surgery scheduled tomorrow at 9 AM, O- blood needed urgently..."
+                placeholder="Example: Road accident, surgery scheduled tomorrow at 9 AM, 3 units of B- blood needed urgently..."
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-800 text-xs rounded-xl text-white placeholder:text-slate-550 focus:outline-none"
               />
+              <p className="text-[9px] text-amber-400/80">Tip: Mentioning blood group (e.g. B-, AB+) or units (e.g. 3 units) here automatically synchronizes the form fields.</p>
 
               <button
                 type="button"

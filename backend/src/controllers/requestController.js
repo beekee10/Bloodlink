@@ -175,14 +175,20 @@ async function getRequestById(req, res) {
 async function getAISuggestion(req, res) {
   const { bloodGroup, unitsRequired, emergencyLevel, details } = req.body;
 
-  if (!bloodGroup || !unitsRequired) {
-    return res.status(400).json({ error: 'Blood group and units required are needed for suggestion.' });
-  }
-
   try {
-    const suggestedText = await generateSmartRequest(bloodGroup, unitsRequired, emergencyLevel || 'Normal', details);
-    res.json({ suggestion: suggestedText });
+    const result = await generateSmartRequest(bloodGroup, unitsRequired, emergencyLevel || 'Normal', details);
+    if (result && typeof result === 'object' && result.suggestion) {
+      res.json({
+        suggestion: result.suggestion,
+        bloodGroup: result.detectedBloodGroup || bloodGroup,
+        unitsRequired: result.detectedUnits || unitsRequired,
+        emergencyLevel: result.detectedEmergencyLevel || emergencyLevel || 'Normal'
+      });
+    } else {
+      res.json({ suggestion: result });
+    }
   } catch (error) {
+    console.error('getAISuggestion error:', error);
     res.status(500).json({ error: 'Failed to generate AI suggestion.' });
   }
 }
